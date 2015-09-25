@@ -18,7 +18,7 @@ var sentenceLengths = function(text) {
 var getWords = function(text) {
   text = text.replace(/['\"\‘\’]/gm,"");
   // text = text.replace(/[.,-\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-  text = text.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g,"");
+  text = text.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ");
   text = text.replace(/\s{2,}/g," ");
   var allWords = text.split(" ").map(function(w) { return {"w": w};});
   var wordCenters = radialPlacement().width(480).height(280).center({"x":1200 / 2, "y":700 / 2 });
@@ -29,20 +29,20 @@ var getWords = function(text) {
   for(i = 0;i < wordsLen;i++) {
     var word = allWords[i];
     var wordList = [];
-    if(words.has(word.w)) {
-      wordList = words.get(word.w);
+    if(words.has(word.w.toLowerCase())) {
+      wordList = words.get(word.w.toLowerCase());
     }
 
     wordList.push({"word":word.w, "index":i, "pos":i / wordsLen, "x":word.x, "y":word.y, "angle":word.angle});
     // if(word.w == "Alice") {
     //   console.log(wordList.length);
     // }
-    words.set(word.w, wordList);
+    words.set(word.w.toLowerCase(), wordList);
   }
 
   var wordMap = [];
   words.forEach(function(word, positions) {
-    var w = {"key":word};
+    var w = {"key":positions[0].word};
     w.x = d3.sum(positions.map(function(p) { return p.x; })) / positions.length;
     w.y = d3.sum(positions.map(function(p) { return p.y; })) / positions.length;
     w.positions = positions;
