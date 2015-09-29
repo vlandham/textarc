@@ -14,13 +14,18 @@ body, input, textarea {
 #word {
   font-size:20px;
   color: "white";
+  float:left;
+}
+
+#title {
+  text-align:center;
 }
 
 .line {
   stroke:#C5A438;
   stroke-width:1;
   fill:none;
-
+  pointer-events: none;
 }
 
 #vis {

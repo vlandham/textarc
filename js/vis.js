@@ -1,7 +1,13 @@
 
+var visWidth = 1100;
+var visHeight = 700;
 
+// pulls out all the sentences
+// TODO: we don't really need the lengths at all - remove
+// TODO: whitespace seems to be removed?
+//  - more likely - the interesting spacing is removed in the gutenberg version
 var sentenceLengths = function(text) {
-  text = text.replace(/['\"\‘\’]/gm,"");
+  // text = text.replace(/['\"\‘\’]/gm,"");
   tregex = /\n|([^\r\n.!?]+([.!?]+|$))/gim;
   var sentences = text.match(tregex).map(function(s) { return s.trim(); });
 
@@ -15,13 +21,16 @@ var sentenceLengths = function(text) {
   return data;
 };
 
+// TODO: combine with sentences somehow to link sentence data with word data
 var getWords = function(text) {
   text = text.replace(/['\"\‘\’]/gm,"");
   // text = text.replace(/[.,-\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+  // remove punctuation
   text = text.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ");
   text = text.replace(/\s{2,}/g," ");
   var allWords = text.split(" ").map(function(w) { return {"w": w};});
-  var wordCenters = radialPlacement().width(480).height(280).center({"x":1200 / 2, "y":700 / 2 });
+  //TODO: magic knowledge of the size of the ellipse here.
+  var wordCenters = radialPlacement().width(480).height(280).center({"x":visWidth / 2, "y":visHeight / 2 });
   wordCenters(allWords);
 
   var wordsLen = allWords.length;
@@ -40,9 +49,28 @@ var getWords = function(text) {
     words.set(word.w.toLowerCase(), wordList);
   }
 
+  // get the version of the word used in the most positions
+  // this will be the visual respresentation used
+  var getMostFrequent = function(positions) {
+    // var words = positions.map(function(p) { return p.word; });
+
+    if (positions.length === 1) {
+      return positions[0].word;
+    }
+
+    var wordCounts = d3.nest()
+      .key(function(p) { return p.word; })
+      .rollup(function(words) { return words.length;})
+      .entries(positions);
+
+    wordCounts.sort(function(a,b) { return b.values - a.values; });
+    return wordCounts[0].key;
+  };
+
   var wordMap = [];
   words.forEach(function(word, positions) {
     var w = {"key":positions[0].word};
+    w.visual = getMostFrequent(positions);
     w.x = d3.sum(positions.map(function(p) { return p.x; })) / positions.length;
     w.y = d3.sum(positions.map(function(p) { return p.y; })) / positions.length;
     w.positions = positions;
@@ -53,11 +81,13 @@ var getWords = function(text) {
     wordMap.push(w);
   });
 
-  // .map(function(w) {return {"word":w};});
-  // return words.entries().sort(function(a,b) { return a.value[0].index - b.value[0].index; });
+  // sort to put more frequent words on top
   return wordMap.sort(function(a,b) { return a.count - b.count; });
 };
 
+// sets up the x and y for a radial layou
+// TODO: modified to lazily add parameters to the input keys - so everything
+// is expected to be an object. Bad for many reasons.
 var radialPlacement = function() {
   var values = d3.map();
   var increment = 20;
@@ -160,14 +190,13 @@ var radialPlacement = function() {
 };
 
 var chart = function() {
-  var width = 1200;
-  var height = 700;
+  var width = visWidth;
+  var height = visHeight;
   var margin = {top: 20, right: 20, bottom: 20, left: 20};
   var g = null;
   var data = [];
 
   var sentenceCenters = radialPlacement().center({"x":width / 2, "y":height / 2 });
-  var wordCenters = radialPlacement().width(450).height(250).center({"x":width / 2, "y":height / 2 });
 
   var chart = function(selection) {
     selection.each(function(rawData) {
@@ -176,7 +205,6 @@ var chart = function() {
       sentenceCenters(sentences);
 
       var words = rawData.words;
-      // wordCenters(words);
 
       var svg = d3.select(this).selectAll("svg").data([data]);
       var gEnter = svg.enter().append("svg").append("g");
@@ -212,30 +240,30 @@ var chart = function() {
         // .attr("opacity", function(d) { return Math.min(d.count / 20, 0.5); })
         // .attr("opacity", function(d) { return d.count > 30 ? 0.9 : 0.4; })
         .attr("fill", function(d) { return d.count > 30 ? "#ddd": "#555"; })
-        .text(function(d) { return d.key; })
+        .text(function(d) { return d.visual; })
         .on("mouseover", mouseover)
         .on("mouseout", mouseout);
     });
   };
+
   function mouseover(d,i) {
+    var bbox = this.getBBox();
+    var direction = d.x > (width / 2) ? -1 : 1;
     g.selectAll(".line")
     .data(d.positions)
     .enter()
     .append("line")
     .attr("class", "line")
-    .attr("x1", d.x)
-    .attr("y1", d.y)
+    .attr("x1", d.x + (direction * (bbox.width / 2)))
+    .attr("y1", d.y - (bbox.height / 3))
     .attr("x2", function(p) { return p.x; })
     .attr("y2", function(p) { return p.y; });
 
-    console.log(d.key);
-    d3.select("#word").html(d.key);
+    d3.select("#word").html(d.visual);
   }
 
   function mouseout(d,i) {
-
     g.selectAll(".line").remove();
-
   }
 
   return chart;
