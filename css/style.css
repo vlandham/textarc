@@ -6,9 +6,7 @@ body, input, textarea {
 }
 
 #main {
-  font-size: 30px;
   color: white;
-  line-height: 50px;
 }
 
 #word {
@@ -19,7 +17,7 @@ body, input, textarea {
   left: 30px;
 }
 
-#title {
+#title, #about {
 
   font-family: Georgia, "Times New Roman", Serif;
   text-align:center;

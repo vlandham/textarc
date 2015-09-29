@@ -25,7 +25,7 @@ var sentenceLengths = function(text) {
 
   var data = sentences.map(function(s) {
     var d = {};
-    d.sentence = s;
+    d.sentence = s.replace(/ /g, '\u00a0');
     d.lookupSentence = removePunctuation(s).toLowerCase();
     d.length = s.length;
     return d;
