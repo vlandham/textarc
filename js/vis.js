@@ -5,6 +5,10 @@ d3.selection.prototype.moveToFront = function() {
   });
 };
 
+var removePunctuation = function(string) {
+  return string.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ").replace(/\s{2,}/g," ");
+};
+
 var visWidth = 1100;
 var visHeight = 700;
 
@@ -14,13 +18,15 @@ var visHeight = 700;
 //  - more likely - the interesting spacing is removed in the gutenberg version
 var sentenceLengths = function(text) {
   // text = text.replace(/['\"\‘\’]/gm,"");
-  tregex = /\n|([^\r\n.!?]+([.!?]+|$))/gim;
-  var sentences = text.match(tregex).map(function(s) { return s.trim(); });
+  // tregex = /\n|([^\r\n.!?]+([.!?]+|$))/gim;
+  // var sentences = text.match(tregex).map(function(s) { return s.trim(); });
+
+  var sentences = text.split("\n");
 
   var data = sentences.map(function(s) {
     var d = {};
     d.sentence = s;
-    d.lookupSentence = s.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ").toLowerCase();
+    d.lookupSentence = removePunctuation(s).toLowerCase();
     d.length = s.length;
     return d;
   });
@@ -32,12 +38,13 @@ var sentenceLengths = function(text) {
 var getWords = function(text) {
   text = text.replace(/['\"\‘\’]/gm,"");
   // text = text.replace(/[.,-\/#!$%\^&\*;:{}=\-_`~()]/g,"");
-  // remove punctuation
-  text = text.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ");
-  text = text.replace(/\s{2,}/g," ");
+  text = removePunctuation(text);
   var allWords = text.split(" ").map(function(w) { return {"word": w};});
+
+  // allWords = allWords.filter(function(w) { return stop_words.indexOf(w.word.toLowerCase()) == -1; });
+
   //TODO: magic knowledge of the size of the ellipse here.
-  var wordCenters = radialPlacement().width(480).height(280).center({"x":visWidth / 2, "y":visHeight / 2 });
+  var wordCenters = radialPlacement().width(460).height(280).center({"x":visWidth / 2, "y":visHeight / 2 });
   wordCenters(allWords);
 
   var wordsLen = allWords.length;
@@ -206,7 +213,7 @@ var chart = function() {
   var sentence = null;
   var word = null;
 
-  var sentenceCenters = radialPlacement().center({"x":width / 2, "y":height / 2 });
+  var sentenceCenters = radialPlacement().width(520).center({"x":width / 2 - 30, "y":height / 2 });
 
   var chart = function(selection) {
     selection.each(function(rawData) {
@@ -230,14 +237,20 @@ var chart = function() {
         .attr("class", "sentence")
         .attr("x",  function(d) { return d.x; })
         .attr("y",  function(d) { return d.y; })
-        .attr("text-anchor", function(d) { return d.angle > 90 ? "end" : "start"; })
+        // .attr("text-anchor", function(d) { return d.angle > 90 ? "end" : "start"; })
+        .attr("text-anchor", "start")
         // .attr("fill", "#ddd")
         // .attr("opacity", 0.4)
         .attr("font-size", "2px")
         .text(function(d) { return d.sentence; });
 
+      var maxCount = d3.max(words, function(w) { return w.count; });
+      var color = d3.scale.log()
+        .domain([1,maxCount / 2])
+        .range(["#333", "#fff"]);
+
       word = g.selectAll(".word")
-        .data(words).enter()
+        .data(words.filter(function(w) { return stop_words.indexOf(w.key) == -1; })).enter()
         .append("text")
         .attr("class", "word")
         .attr("x",  function(d) { return d.x; })
@@ -249,7 +262,8 @@ var chart = function() {
         // .attr("fill", "#ddd")
         // .attr("opacity", function(d) { return Math.min(d.count / 20, 0.5); })
         // .attr("opacity", function(d) { return d.count > 30 ? 0.9 : 0.4; })
-        .attr("fill", function(d) { return d.count > 30 ? "#ddd": "#555"; })
+        // .attr("fill", function(d) { return d.count > 30 ? "#ddd": "#555"; })
+        .attr("fill", function(d) { return  color(d.count); })
         .text(function(d) { return d.visual; })
         .on("mouseover", mouseover)
         .on("mouseout", mouseout);
