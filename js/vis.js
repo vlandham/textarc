@@ -1,4 +1,10 @@
 
+d3.selection.prototype.moveToFront = function() {
+  return this.each(function(){
+    this.parentNode.appendChild(this);
+  });
+};
+
 var visWidth = 1100;
 var visHeight = 700;
 
@@ -14,6 +20,7 @@ var sentenceLengths = function(text) {
   var data = sentences.map(function(s) {
     var d = {};
     d.sentence = s;
+    d.lookupSentence = s.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ").toLowerCase();
     d.length = s.length;
     return d;
   });
@@ -28,7 +35,7 @@ var getWords = function(text) {
   // remove punctuation
   text = text.replace(/['!"#$%&\\'()\*+,\-\.\/:;<=>?@\[\\\]\^_`{|}~']/g," ");
   text = text.replace(/\s{2,}/g," ");
-  var allWords = text.split(" ").map(function(w) { return {"w": w};});
+  var allWords = text.split(" ").map(function(w) { return {"word": w};});
   //TODO: magic knowledge of the size of the ellipse here.
   var wordCenters = radialPlacement().width(480).height(280).center({"x":visWidth / 2, "y":visHeight / 2 });
   wordCenters(allWords);
@@ -38,19 +45,21 @@ var getWords = function(text) {
   for(i = 0;i < wordsLen;i++) {
     var word = allWords[i];
     var wordList = [];
-    if(words.has(word.w.toLowerCase())) {
-      wordList = words.get(word.w.toLowerCase());
+    var wordKey = word.word.toLowerCase();
+    if(words.has(wordKey)) {
+      wordList = words.get(wordKey);
     }
 
-    wordList.push({"word":word.w, "index":i, "pos":i / wordsLen, "x":word.x, "y":word.y, "angle":word.angle});
+    wordList.push({"word":word.word, "index":i, "pos":i / wordsLen, "x":word.x, "y":word.y, "angle":word.angle});
     // if(word.w == "Alice") {
     //   console.log(wordList.length);
     // }
-    words.set(word.w.toLowerCase(), wordList);
+    words.set(wordKey, wordList);
   }
 
   // get the version of the word used in the most positions
   // this will be the visual respresentation used
+  // TODO: still not quite right. Example - FATHER
   var getMostFrequent = function(positions) {
     // var words = positions.map(function(p) { return p.word; });
 
@@ -194,7 +203,8 @@ var chart = function() {
   var height = visHeight;
   var margin = {top: 20, right: 20, bottom: 20, left: 20};
   var g = null;
-  var data = [];
+  var sentence = null;
+  var word = null;
 
   var sentenceCenters = radialPlacement().center({"x":width / 2, "y":height / 2 });
 
@@ -206,7 +216,7 @@ var chart = function() {
 
       var words = rawData.words;
 
-      var svg = d3.select(this).selectAll("svg").data([data]);
+      var svg = d3.select(this).selectAll("svg").data([sentences]);
       var gEnter = svg.enter().append("svg").append("g");
 
       svg.attr("width", width + margin.left + margin.right );
@@ -214,19 +224,19 @@ var chart = function() {
       g = svg.select("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-      var sentence = g.selectAll(".sentence")
+      sentence = g.selectAll(".sentence")
         .data(sentences).enter()
         .append("text")
         .attr("class", "sentence")
         .attr("x",  function(d) { return d.x; })
         .attr("y",  function(d) { return d.y; })
         .attr("text-anchor", function(d) { return d.angle > 90 ? "end" : "start"; })
-        .attr("fill", "#ddd")
-        .attr("opacity", 0.4)
+        // .attr("fill", "#ddd")
+        // .attr("opacity", 0.4)
         .attr("font-size", "2px")
         .text(function(d) { return d.sentence; });
 
-      var word = g.selectAll(".word")
+      word = g.selectAll(".word")
         .data(words).enter()
         .append("text")
         .attr("class", "word")
@@ -246,6 +256,16 @@ var chart = function() {
     });
   };
 
+  //TODO: this will match sentences with sub-words in them as well.
+  // example "mouse" will match "mouse" but also "doormouse".
+  // a fix would be to add spaces around the word - but then we need
+  // to ensure that the lookupSentence is removing 's and other punctuation properly
+  function getSentencesWith(aWord) {
+    return sentence.filter(function(s) {
+      return s.lookupSentence.indexOf(aWord.toLowerCase()) > -1;
+    });
+  }
+
   function mouseover(d,i) {
     var bbox = this.getBBox();
     var direction = d.x > (width / 2) ? -1 : 1;
@@ -260,15 +280,20 @@ var chart = function() {
     .attr("y2", function(p) { return p.y; });
 
     d3.select("#word").html(d.visual);
+
+    if( !d.sentences ) {
+      d.sentences = getSentencesWith(d.key);
+    }
+    d.sentences.classed("highlight", true).moveToFront();
   }
 
   function mouseout(d,i) {
     g.selectAll(".line").remove();
+    sentence.classed("highlight", false);
   }
 
   return chart;
 };
-
 
 function plotData(selector, data, plot) {
   d3.select(selector)

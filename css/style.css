@@ -5,7 +5,7 @@ body, input, textarea {
   color: white;
 }
 
-#main p {
+#main {
   font-size: 30px;
   color: white;
   line-height: 50px;
@@ -14,11 +14,27 @@ body, input, textarea {
 #word {
   font-size:20px;
   color: "white";
-  float:left;
+  position: absolute;
+  top: 20px;
+  left: 30px;
 }
 
 #title {
+
+  font-family: Georgia, "Times New Roman", Serif;
   text-align:center;
+  color: #ddd;
+  opacity: 0.4;
+  font-style: italic;
+}
+
+.sentence {
+  opacity: 0.4;
+  fill: #ddd;
+}
+.sentence.highlight {
+  fill: #1FC946;
+  opacity: 1.0;
 }
 
 .line {
