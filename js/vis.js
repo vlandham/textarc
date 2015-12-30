@@ -315,16 +315,14 @@ function plotData(selector, data, plot) {
     .call(plot);
 }
 
-$(document).ready(function() {
-  var plot = chart();
+var plot = chart();
 
-  function display(error, text) {
-    var sentences = sentenceLengths(text);
-    var words = getWords(text);
-    plotData("#vis", {"sentences":sentences, "words": words}, plot);
-  }
+function display(error, text) {
+  var sentences = sentenceLengths(text);
+  var words = getWords(text);
+  plotData("#vis", {"sentences":sentences, "words": words}, plot);
+}
 
-  queue()
-    .defer(d3.text, "data/alice.txt")
-    .await(display);
-});
+queue()
+  .defer(d3.text, "data/alice.txt")
+  .await(display);
