@@ -9,6 +9,19 @@ body, input, textarea {
   color: white;
 }
 
+.container {
+  /*width: 940px;*/
+  /*margin: auto;*/
+  width: 1170px
+}
+
+.container {
+  padding-right: 15px;
+  padding-left: 15px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
 #word {
   font-size:20px;
   color: "white";
@@ -30,7 +43,8 @@ body, input, textarea {
   opacity: 0.4;
   fill: #ddd;
 }
-.sentence.highlight {
+
+.highlight {
   fill: #1FC946;
   opacity: 1.0;
 }
