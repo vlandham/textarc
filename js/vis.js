@@ -84,7 +84,8 @@ var getWords = function(text) {
   };
 
   var wordMap = [];
-  words.forEach(function(word, positions) {
+  words.each(function(positions, word) {
+
     var w = {"key":positions[0].word};
     w.visual = getMostFrequent(positions);
     w.x = d3.sum(positions.map(function(p) { return p.x; })) / positions.length;
@@ -224,15 +225,17 @@ var chart = function() {
       var words = rawData.words;
 
       var svg = d3.select(this).selectAll("svg").data([sentences]);
-      var gEnter = svg.enter().append("svg").append("g");
+      var gEnter = svg.enter().append("svg")
 
-      svg.attr("width", width + margin.left + margin.right );
-      svg.attr("height", height + margin.top + margin.bottom );
-      g = svg.select("g")
+      svg.merge(gEnter)
+        .attr("width", width + margin.left + margin.right )
+        .attr("height", height + margin.top + margin.bottom );
+      g = gEnter.append("g")
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
       sentence = g.selectAll(".sentence")
-        .data(sentences).enter()
+        .data(sentences)
+        .enter()
         .append("text")
         .attr("class", "sentence")
         .attr("x",  function(d) { return d.x; })
@@ -245,7 +248,7 @@ var chart = function() {
         .text(function(d) { return d.sentence; });
 
       var maxCount = d3.max(words, function(w) { return w.count; });
-      var color = d3.scale.log()
+      var color = d3.scaleLog()
         .domain([1,maxCount / 2])
         .range(["#333", "#fff"]);
 
@@ -287,6 +290,7 @@ var chart = function() {
     .data(d.positions)
     .enter()
     .append("line")
+    .attr('pointer-events', 'none')
     .attr("class", "line")
     .attr("x1", d.x + (direction * (bbox.width / 2)))
     .attr("y1", d.y - (bbox.height / 3))
@@ -298,12 +302,12 @@ var chart = function() {
     if( !d.sentences ) {
       d.sentences = getSentencesWith(d.key);
     }
-    d.sentences.classed("highlight", true).moveToFront();
+    d.sentences.classed("highlight", true)//.moveToFront();
   }
 
   function mouseout(d,i) {
     g.selectAll(".line").remove();
-    sentence.classed("highlight", false);
+    d.sentences.classed("highlight", false);
   }
 
   return chart;
@@ -323,6 +327,6 @@ function display(error, text) {
   plotData("#vis", {"sentences":sentences, "words": words}, plot);
 }
 
-queue()
+d3.queue()
   .defer(d3.text, "data/alice.txt")
   .await(display);
